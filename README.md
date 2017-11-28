@@ -20,13 +20,39 @@ Laravel BackPack's central package, which includes:
 
 ![Example generated CRUD interface](https://backpackforlaravel.com/uploads/screenshots/base_login.png)
 
+## Install on Laravel 5.5
+
+1) Run in your terminal:
+
+``` bash
+composer require backpack/base
+php artisan backpack:base:install
+```
+
+2) Make sure the reset password emails have the correct reset link by adding these to your ```User``` model:
+- before class name ```use Backpack\Base\app\Notifications\ResetPasswordNotification as ResetPasswordNotification;```
+- as a method inside the User class:
+``` php
+  /**
+   * Send the password reset notification.
+   *
+   * @param  string  $token
+   * @return void
+   */
+  public function sendPasswordResetNotification($token)
+  {
+      $this->notify(new ResetPasswordNotification($token));
+  }
+```
+
+3) [optional] Change values in config/backpack/base.php to make the admin panel your own. Change menu color, project name, developer name etc.
 
 ## Install on Laravel 5.4 / 5.3
 
 1) Run in your terminal:
 
 ``` bash
-$ composer require backpack/base
+$ composer require backpack/base 0.7.x
 ```
 
 2) Add the service providers in config/app.php:
@@ -101,6 +127,14 @@ $ php artisan migrate #generates users table (using Laravel's default migrations
 
 ![Example generated CRUD interface](https://backpackforlaravel.com/uploads/screenshots/base_dashboard.png)
 
+
+## Overwriting Functionality
+
+If you need to modify how this works in a project: 
+- create a ```routes/backpack/base.php``` file; the package will see that, and load _your_ routes file, instead of the one in the package; 
+- create controllers/models that extend the ones in the package, and use those in your new routes file;
+- modify anything you'd like in the new controllers/models;
+
 ## Change log
 
 Please see [CHANGELOG](CHANGELOG.md) for more information what has changed recently.
@@ -134,7 +168,7 @@ Please **[subscribe to the Backpack Newsletter](http://eepurl.com/bUEGjf)** so y
 
 ## License
 
-Backpack is free for non-commercial use and $19/project for commercial use. Please see [License File](LICENSE.md) and [backpackforlaravel.com](https://backpackforlaravel.com/#pricing) for more information.
+Backpack is free for non-commercial use and 39 EUR/project for commercial use. Please see [License File](LICENSE.md) and [backpackforlaravel.com](https://backpackforlaravel.com/#pricing) for more information.
 
 [ico-version]: https://img.shields.io/packagist/v/backpack/base.svg?style=flat-square
 [ico-license]: https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square

@@ -8,12 +8,23 @@ use Route;
 
 class BaseServiceProvider extends ServiceProvider
 {
+    protected $commands = [
+        app\Console\Commands\Install::class,
+    ];
+
     /**
      * Indicates if loading of the provider is deferred.
      *
      * @var bool
      */
     protected $defer = false;
+
+    /**
+     * Where the route file lives, both inside the package and in the app (if overwritten).
+     *
+     * @var string
+     */
+    public $routeFilePath = '/routes/backpack/base.php';
 
     /**
      * Perform post-registration booting of services.
@@ -38,6 +49,15 @@ class BaseServiceProvider extends ServiceProvider
         $this->registerAdminMiddleware($this->app->router);
         $this->setupRoutes($this->app->router);
         $this->publishFiles();
+        $this->loadHelpers();
+    }
+
+    /**
+     * Load the Backpack helper methods, for convenience.
+     */
+    public function loadHelpers()
+    {
+        require_once __DIR__.'/helpers.php';
     }
 
     /**
@@ -49,25 +69,15 @@ class BaseServiceProvider extends ServiceProvider
      */
     public function setupRoutes(Router $router)
     {
-        Route::group(
-        [
-            'namespace'  => 'Backpack\Base\app\Http\Controllers',
-            'middleware' => 'web',
-            'prefix'     => config('backpack.base.route_prefix'),
-        ],
-        function () {
-            // if not otherwise configured, setup the auth routes
-            if (config('backpack.base.setup_auth_routes')) {
-                Route::auth();
-                Route::get('logout', 'Auth\LoginController@logout');
-            }
+        // by default, use the routes file provided in vendor
+        $routeFilePathInUse = __DIR__.$this->routeFilePath;
 
-            // if not otherwise configured, setup the dashboard routes
-            if (config('backpack.base.setup_dashboard_routes')) {
-                Route::get('dashboard', 'AdminController@dashboard');
-                Route::get('/', 'AdminController@redirect');
-            }
-        });
+        // but if there's a file with the same name in routes/backpack, use that one
+        if (file_exists(base_path().$this->routeFilePath)) {
+            $routeFilePathInUse = base_path().$this->routeFilePath;
+        }
+
+        $this->loadRoutesFrom($routeFilePathInUse);
     }
 
     /**
@@ -85,11 +95,13 @@ class BaseServiceProvider extends ServiceProvider
         // register its dependencies
         $this->app->register(\Jenssegers\Date\DateServiceProvider::class);
         $this->app->register(\Prologue\Alerts\AlertsServiceProvider::class);
+        $this->app->register(\Creativeorange\Gravatar\GravatarServiceProvider::class);
 
         // register their aliases
         $loader = \Illuminate\Foundation\AliasLoader::getInstance();
         $loader->alias('Alert', \Prologue\Alerts\Facades\Alert::class);
         $loader->alias('Date', \Jenssegers\Date\Date::class);
+        $loader->alias('Gravatar', \Creativeorange\Gravatar\Facades\Gravatar::class);
 
         // register the services that are only used for development
         if ($this->app->environment() == 'local') {
@@ -100,18 +112,14 @@ class BaseServiceProvider extends ServiceProvider
                 $this->app->register('Backpack\Generators\GeneratorsServiceProvider');
             }
         }
+
+        // register the artisan commands
+        $this->commands($this->commands);
     }
 
     public function registerAdminMiddleware(Router $router)
     {
-        // in Laravel 5.4
-        if (method_exists($router, 'aliasMiddleware')) {
-            Route::aliasMiddleware('admin', \Backpack\Base\app\Http\Middleware\Admin::class);
-        }
-        // in Laravel 5.3 and below
-        else {
-            Route::middleware('admin', \Backpack\Base\app\Http\Middleware\Admin::class);
-        }
+        Route::aliasMiddleware('admin', \Backpack\Base\app\Http\Middleware\Admin::class);
     }
 
     public function publishFiles()
@@ -120,7 +128,7 @@ class BaseServiceProvider extends ServiceProvider
         $this->publishes([__DIR__.'/config' => config_path()], 'config');
 
         // publish lang files
-        $this->publishes([__DIR__.'/resources/lang' => resource_path('lang/vendor/backpack')], 'lang');
+        // $this->publishes([__DIR__.'/resources/lang' => resource_path('lang/vendor/backpack')], 'lang');
 
         // publish views
         $this->publishes([__DIR__.'/resources/views' => resource_path('views/vendor/backpack/base')], 'views');
@@ -133,5 +141,8 @@ class BaseServiceProvider extends ServiceProvider
 
         // publish public AdminLTE assets
         $this->publishes([base_path('vendor/almasaeed2010/adminlte') => public_path('vendor/adminlte')], 'adminlte');
+
+        // publish public Gravatar assets
+        $this->publishes([base_path('vendor/creativeorange/gravatar/config') => config_path()], 'gravatar');
     }
 }
