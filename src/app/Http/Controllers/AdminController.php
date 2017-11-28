@@ -2,19 +2,16 @@
 
 namespace Backpack\Base\app\Http\Controllers;
 
-use App\Http\Requests;
-use Illuminate\Http\Request;
-
 class AdminController extends Controller
 {
+    protected $data = []; // the information we send to the view
+
     /**
      * Create a new controller instance.
-     *
-     * @return void
      */
     public function __construct()
     {
-        $this->middleware('auth');
+        $this->middleware('admin');
     }
 
     /**
@@ -24,6 +21,19 @@ class AdminController extends Controller
      */
     public function dashboard()
     {
-        return view('backpack::dashboard');
+        $this->data['title'] = trans('backpack::base.dashboard'); // set the page title
+
+        return view('backpack::dashboard', $this->data);
+    }
+
+    /**
+     * Redirect to the dashboard.
+     *
+     * @return \Illuminate\Routing\Redirector|\Illuminate\Http\RedirectResponse
+     */
+    public function redirect()
+    {
+        // The '/admin' route is not to be used as a page, because it breaks the menu's active state.
+        return redirect(config('backpack.base.route_prefix').'/dashboard');
     }
 }
